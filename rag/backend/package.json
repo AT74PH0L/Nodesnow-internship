@@ -1,0 +1,32 @@
+{
+  "name": "rag",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "MIT",
+  "dependencies": {
+    "@langchain/community": "^0.3.45",
+    "@langchain/core": "^0.3.57",
+    "@langchain/langgraph": "^0.3.0",
+    "@langchain/openai": "^0.5.12",
+    "@prisma/client": "^6.9.0",
+    "@sequelize/postgres": "^7.0.0-alpha.46",
+    "cors": "^2.8.5",
+    "dotenv": "^16.5.0",
+    "express": "^5.1.0",
+    "langchain": "^0.3.27",
+    "pg": "^8.16.0",
+    "pg-hstore": "^2.3.4",
+    "prisma": "^6.9.0",
+    "sequelize": "^6.37.7",
+    "uuid": "^11.1.0",
+    "winston": "^3.17.0",
+    "zod": "^3.25.56"
+  },
+  "scripts": {
+    "dev": "nodemon ./src/app.js"
+  },
+  "type": "module",
+  "devDependencies": {
+    "nodemon": "^3.1.10"
+  }
+}

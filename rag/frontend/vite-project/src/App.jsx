@@ -24,17 +24,16 @@ const ChatInterface = () => {
       timestamp: new Date().toISOString()
     };
 
-    // Add user message to chat
     setMessages(prev => [...prev, userMessage]);
     const currentMessage = inputMessage.trim();
     setInputMessage('');
     setIsLoading(true);
 
     try {
-      // Prepare chat history for backend
+      // เตรียม history ที่ไม่แปลง content
       const chatHistory = messages.map(msg => ({
         role: msg.role,
-        content: msg.content || (msg.type === 'product' ? `แนะนำสินค้า ${msg.products?.length || 0} รายการสำหรับ "${msg.query_used}"` : 'ตอบคำถาม')
+        content: msg.content // ส่ง raw content ไปให้ backend
       }));
 
       const response = await fetch('http://localhost:3000/', {
@@ -48,32 +47,29 @@ const ChatInterface = () => {
         }),
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to get response');
-      }
+      if (!response.ok) throw new Error('Failed to get response');
 
       const data = await response.json();
-      
-      // Handle different response types
+
       let assistantMessage;
-      
+
       if (data.products) {
-        // Product response - สร้าง content สำหรับเก็บใน history
         const productSummary = `แนะนำสินค้า ${data.products.length} รายการสำหรับคำค้นหา "${data.query_used}": ${data.products.map(p => p.name).join(', ')}`;
-        
+
         assistantMessage = {
           role: 'assistant',
-          content: productSummary, // เก็บ summary สำหรับ history
+          content: JSON.stringify(data), // 👈 raw JSON สำหรับ backend
+          display_content: productSummary, // 👈 ใช้ใน UI
           products: data.products,
           query_used: data.query_used,
           timestamp: new Date().toISOString(),
           type: 'product'
         };
       } else {
-        // Text response
         assistantMessage = {
           role: 'assistant',
-          content: data.content,
+          content: JSON.stringify(data), // 👈 raw JSON string
+          display_content: data.content,  // 👈 สำหรับ UI
           timestamp: new Date().toISOString(),
           type: 'text'
         };
@@ -85,6 +81,7 @@ const ChatInterface = () => {
       const errorMessage = {
         role: 'assistant',
         content: 'ขออภัย เกิดข้อผิดพลาดในการเชื่อมต่อ กรุณาลองใหม่อีกครั้ง',
+        display_content: 'ขออภัย เกิดข้อผิดพลาดในการเชื่อมต่อ กรุณาลองใหม่อีกครั้ง',
         timestamp: new Date().toISOString(),
         type: 'error'
       };
@@ -110,7 +107,6 @@ const ChatInterface = () => {
           {(product.similarity_score * 100).toFixed(0)}%
         </div>
       </div>
-      
       <div className="grid md:grid-cols-2 gap-4">
         <div>
           <h5 className="font-medium text-gray-700 mb-2 flex items-center">
@@ -126,7 +122,6 @@ const ChatInterface = () => {
             ))}
           </ul>
         </div>
-        
         <div>
           <h5 className="font-medium text-gray-700 mb-2">แก้ปัญหา</h5>
           <ul className="text-sm text-gray-600 space-y-1">
@@ -139,7 +134,6 @@ const ChatInterface = () => {
           </ul>
         </div>
       </div>
-      
       <div className="flex justify-between items-center mt-4 pt-4 border-t border-gray-100">
         <div className="flex items-center text-gray-600">
           <DollarSign className="w-4 h-4 mr-1" />
@@ -155,7 +149,7 @@ const ChatInterface = () => {
 
   const MessageBubble = ({ message }) => {
     const isUser = message.role === 'user';
-    
+
     return (
       <div className={`flex ${isUser ? 'justify-end' : 'justify-start'} mb-4`}>
         <div className={`flex max-w-4xl ${isUser ? 'flex-row-reverse' : 'flex-row'}`}>
@@ -166,10 +160,10 @@ const ChatInterface = () => {
               {isUser ? <User className="w-5 h-5 text-white" /> : <Bot className="w-5 h-5 text-white" />}
             </div>
           </div>
-          
+
           <div className={`rounded-2xl px-4 py-2 ${
-            isUser 
-              ? 'bg-blue-500 text-white' 
+            isUser
+              ? 'bg-blue-500 text-white'
               : message.type === 'error'
               ? 'bg-red-100 text-red-800'
               : 'bg-gray-100 text-gray-800'
@@ -189,12 +183,9 @@ const ChatInterface = () => {
                 </div>
               </div>
             ) : (
-              <p className="whitespace-pre-wrap">{message.content}</p>
+              <p className="whitespace-pre-wrap">{message.display_content || message.content}</p>
             )}
-            
-            <div className={`text-xs mt-2 ${
-              isUser ? 'text-blue-100' : 'text-gray-500'
-            }`}>
+            <div className={`text-xs mt-2 ${isUser ? 'text-blue-100' : 'text-gray-500'}`}>
               {new Date(message.timestamp).toLocaleTimeString('th-TH', {
                 hour: '2-digit',
                 minute: '2-digit'
@@ -228,11 +219,11 @@ const ChatInterface = () => {
             <p>มีอะไรให้ช่วยไหมครับ? สามารถถามคำถามทั่วไปหรือขอแนะนำสินค้าได้เลย</p>
           </div>
         )}
-        
+
         {messages.map((message, index) => (
           <MessageBubble key={index} message={message} />
         ))}
-        
+
         {isLoading && (
           <div className="flex justify-start mb-4">
             <div className="flex mr-2">
@@ -243,13 +234,13 @@ const ChatInterface = () => {
             <div className="bg-gray-100 rounded-2xl px-4 py-2">
               <div className="flex space-x-1">
                 <div className="w-2 h-4 bg-gray-400 rounded-full animate-bounce"></div>
-                <div className="w-2 h-4 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '0.1s'}}></div>
-                <div className="w-2 h-4 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
+                <div className="w-2 h-4 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                <div className="w-2 h-4 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
               </div>
             </div>
           </div>
         )}
-        
+
         <div ref={messagesEndRef} />
       </div>
 

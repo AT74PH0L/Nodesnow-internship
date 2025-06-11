@@ -88,8 +88,6 @@ export async function assistant(historyMessages, currentInput) {
 
   const messages = [
     systemMessage,
-    new HumanMessage(""),
-    new AIMessage(""),
     ...historyMessages,
     new HumanMessage(currentInput),
   ];
@@ -101,13 +99,13 @@ export async function assistant(historyMessages, currentInput) {
 
   const response = await agent.invoke({ messages });
   const lastMessage = response.messages.at(-1)?.content;
-
   let parsed;
   try {
     parsed = await parser.parse(lastMessage);
+    // console.log(parsed);
   } catch (err) {
     console.error("❌ JSON Parse Error:", err, "Raw message:", lastMessage);
-    parsed = { content: lastMessage }; 
+    parsed = { content: lastMessage };
   }
   return parsed;
 }

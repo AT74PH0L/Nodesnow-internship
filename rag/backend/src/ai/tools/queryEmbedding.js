@@ -2,6 +2,7 @@ import { PGVectorStore } from "@langchain/community/vectorstores/pgvector";
 import { embeddings } from "../model/embedding.js";
 import { tool } from "@langchain/core/tools";
 import logger from "./logger.js";
+import { Client } from "pg";
 
 const config = {
   postgresConnectionOptions: {
@@ -32,9 +33,11 @@ export const getProductInfo = tool(
 
     try {
       const vectorStore = await PGVectorStore.initialize(embeddings, config);
-      const res = await vectorStore.similaritySearch(input, 2);
-
+      const res = await vectorStore.similaritySearchWithScore(input, 10);
+      console.log(res);
       const docsContent = res.map((doc) => doc.pageContent).join("\n");
+
+      console.log(docsContent);
       return docsContent;
     } catch (error) {
       logger.error("Failed to fetch product info", {

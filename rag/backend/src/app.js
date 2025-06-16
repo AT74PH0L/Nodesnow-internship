@@ -10,7 +10,7 @@ app.use(cors());
 const port = process.env.PORT || 3000;
 
 app.post("/", async (req, res) => {
-  console.log(req.body.history);
+  // console.log(req.body.history);
   // console.log(req.body.message);
   const output = await assistant(req.body.history, req.body.message);
   res.send(output);

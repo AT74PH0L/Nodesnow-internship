@@ -7,6 +7,7 @@ import {
 import { z } from "zod";
 import { StructuredOutputParser } from "@langchain/core/output_parsers";
 import { getProductInfo } from "../tools/queryEmbedding.js";
+import { getProductInfo_v2 } from "../tools/queryEmbedding-v2.js";
 import { llm } from "../model/llm.js";
 
 export async function assistant(historyMessages, currentInput) {
@@ -47,22 +48,39 @@ export async function assistant(historyMessages, currentInput) {
   const parser = StructuredOutputParser.fromZodSchema(ResponseSchema);
 
   const systemMessage = new SystemMessage(`
-    You are an intelligent assistant helping users with both general inquiries and product-related questions.
+    You are an intelligent assistant helping users with both general inquiries and queries related to products and services.
 
-    You have access to a product search tool. Use the tool ONLY when the user’s query is about product information such as:
-    - Searching for specific products
-    - Comparing products
-    - Requesting product features, benefits, or pricing
-    - Asking for product recommendations
+    You have access to a product & service search tool. Use this tool ONLY when the user's query is specifically about **product or service information**, such as:
+    - Searching for specific products or services
+    - Comparing multiple products or services
+    - Requesting features, benefits, or pricing
+    - Asking for product or service recommendations
 
-    DO NOT use the tool for general questions, chit-chat, greetings, or any inquiry not related to products.
 
-    Respond in **JSON format only**:
+    Examples:
+    "What are the benefits of Product A?"
+    "Compare Product A and Product B"
+    "How much does Service X cost?"
+    "Recommend me a software for accounting"
 
-    - For general answers or casual conversation:
+    IF TOOL RETURNS EMPTY, return:
+    {
+      "products": [],
+      "query_used": "<the query you used>"
+    }
+
+    For all other general or non-product/service questions (e.g., history, opinions, casual conversation), respond directly with:
+
+    {
+      "content": "<your message>"
+    }
+
+    You must respond in **JSON format only**:
+
+    - For general responses:
       { "content": "<your message>" }
 
-    - For product-related queries (only if tool is used):
+    - For product/service-related queries (only when tool is used):
       {
         "products": [
           {
@@ -79,11 +97,10 @@ export async function assistant(historyMessages, currentInput) {
         "query_used": "string"
       }
 
-    Only respond in one of the two JSON formats above. Never reply with plain text. Think carefully before deciding whether to use the tool.
+    Do not return plain text. Think carefully before deciding whether to use the tool.
 
     Format Instructions:
     ${parser.getFormatInstructions()}
-
 `);
 
   const messages = [
@@ -94,7 +111,7 @@ export async function assistant(historyMessages, currentInput) {
 
   const agent = createReactAgent({
     llm,
-    tools: [getProductInfo],
+    tools: [getProductInfo_v2],
   });
 
   const response = await agent.invoke({ messages });
